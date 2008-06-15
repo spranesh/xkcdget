@@ -1,0 +1,216 @@
+--- XKCDGet.py	2008-06-07 03:19:42.000000000 +0530
++++ XKCDGet_new.py	2008-06-07 03:18:51.000000000 +0530
+@@ -14,27 +14,63 @@
+ 	# Samhita Reddy Kasula  <samhita.kasula>
+ 
+ 
++# Version 1.1.2
++# New Features :
++# Gui Support with -g flag and command line support with -c flag
++# Also added defaults for operating systems
++# Opens comic automatically in web browser.
++# Now accesses home directory through user module
++# Added Zenity for linux systems supporting it for native look and feel
++# Changed HTTPError u2.HTTPError
++# 
++# To Do :
++# Arrange the Code into a neat Class 
++# of functions, to avoid global variables
+ 
+ 
+-from sys import exit as quit
++import sys
+ import os
+ import urllib as u1
+ import urllib2 as u2
+ import BeautifulSoup as BS
++import easygui
++import webbrowser
++import user
++
++quit = sys.exit
+ 
+ 
+ #A few functions are defined first
++def getGuiBool(li):
++	'''Parses Command line args and returns 1 if -g option was specified, and 0 otherwise'''
++	# We have to use print in the following lines, since we do not know if the user has 
++	# enabled gui mode, and whether he has the necessary libs
++	if len(li) > 2:
++		print " Invalid Usage. Usage is XKCDGet.py with optional -g (GUI) -c (Command line) or -n (GUI but NO Zenity) flag.\n"
++		quit()
++	
++	# we now set defaults for the operating systems
++	if sys.platform == 'win32': lgui = 1
++	else: lgui = 0
++	
++	# now we see if these options have been forcibly reset or not
++	if len(li) == 2:
++		if li[1] in ['-g', '-n']:
++			lgui = 1
++		elif li[1] == '-c':
++			lgui = 0
++	
++	return lgui
++
++
++
+ def getConfigFileName():
+ 	'''This function returns the path to the config file, depending on the Operating System.'''
+ 	try:
+-		config_file = os.path.join(os.environ["HOME"], ".xkcdrc")
++		config_file = os.path.join(user.home, ".xkcdrc")
+ 	except KeyError:
+-		try:
+-			config_file = os.path.join(os.environ["HOMEPATH"], ".xkcdrc")
+-		except KeyError:
+-			print "XKCDGet is not available for your OS yet.\n"
+-			quit()
+-	
++		display("XKCDGet is not available for your OS yet.\n", zenity)
++		quit()
+ 	return config_file
+ 
+ 
+@@ -76,6 +112,39 @@
+ 	f.close()
+ 
+ 
++def display(s, zenity, error = 0):
++	if gui==0:
++		print s
++	else:
++		if zenity == 0:
++			easygui.msgbox(message=s, title="XKCDGet", buttonMessage="OK")
++		else:
++			if not error:
++				try:
++					os.system("zenity --info --title=XKCDGet --text='%s'"%s)
++				except:
++					zenity = 0
++					display(s, zenity, error)
++			else:
++				try:
++					os.system("zenity --warning --title=XKCDGet --text='%s'"%s)
++				except:
++					zenity = 0
++					display(s, zenity, error)
++	return zenity
++
++	
++
++def useProgram(s):
++	a = 0
++	if len(sys.argv) == 2 and sys.argv[1] == '-n':
++		a = 0
++	elif sys.platform[:5]=='linux':
++		for root in os.environ["PATH"].split(':'):
++			for pdir, dirs, files in os.walk(root):
++				a += len([file for file in files if file == s])
++	return a
++
+ 
+ 
+ 
+@@ -84,13 +153,16 @@
+ # --------------------------------------------------
+ 
+ #we define a few global variables in the lines to follow
+-xkcd 		= "http://www.xkcd.com"
+-layoutChanged 	= "XKCD has probably changed its layout. Contact us :P. \n"
+ config_file 	= getConfigFileName()
++gui 		= getGuiBool(sys.argv)
+ ImageFolder 	= 'images'
++layoutChanged 	= "XKCD has probably changed its layout. Contact us :P. \n"
++thanks 		= "Thanks for using NPS XKCDGet\n"
++xkcd 		= "http://www.xkcd.com"
++zenity		= useProgram("zenity")
+ 
+ #parameters to be passed in order are image_title, title(again), image_filename, image_mouseOver
+-html_markup 	= "<html><head><title>%s</title></head><body><center><h3>%s</h3><hr /><br /><img src='%s' /> <br />%s<br /></center></body></html>"
++html_markup 	= "<html><head><title>%s</title></head><body><center><h3>%s</h3><hr /><br /><img src='%s' /> <br />%s<hr /><br />%s</center></body></html>"
+ 
+ 
+ 
+@@ -100,19 +172,24 @@
+ 	lAcc = int(f.readline().strip()) 
+ 	f.close()
+ except IOError, OSError:
+-	print " Some error in looking up last accessed file has occured. We will assume whatever"
+-	print " we fetch is the latest one. If this is the first time you are running the program"
+-	print " there is no cause for worry. This is perfectly alright. \n"
++	s1 = "Some error in looking up last accessed file has occured. We will assume whatever "
++	s2 = "we fetch is the latest one. If this is the first time you are running the program "
++	s3 = "there is no cause for worry. This is perfectly alright. \n"
++
++	display(s1+s2+s3, zenity)
++
+ 	lAcc = 0
+ 
+ try:
+ 	f = u2.urlopen(xkcd)
+ 	page = f.read()
+ 	f.close()
+-except HTTPError, e:
+-	print "Error code ", e, ". Site could not be openend \n"
++except u2.HTTPError, e:
++	display("Error code "+ e+ ". Site could not be openend \n", zenity, error=1)
++	quit()
+ except IOError:
+-	print "For some vague reason that even we do not understand, we could not read from /tmp \n"
++	display("For some vague reason that even we do not understand, we could not read from /tmp \n",zenity,  error = 1)
++	quit()
+ 
+ soup = BS.BeautifulSoup(page)
+ 
+@@ -120,7 +197,7 @@
+ CCno = getComicNumber(soup)
+ 
+ if CCno > lAcc :
+-	print "A new comic is out. Downloading to current directory. \n"
++	display("A new comic is out. Downloading to current directory. \n", zenity)
+ 	img_url, img_title, img_mouseOver = getImgAttr(soup)		
+ 
+ 	if not os.path.isdir(ImageFolder):
+@@ -137,25 +214,31 @@
+ 		quit()
+ 
+ 	#the following 2 lines, save the html file markup
+-	page_source = BS.BeautifulSoup(html_markup%(img_title, img_title, img_save, img_mouseOver)).prettify()
++	page_source = BS.BeautifulSoup(html_markup%(img_title, img_title, img_save, img_mouseOver, thanks)).prettify()
+ 	write_to_file(img_naming_scheme +'.html', page_source)
+ 
+ 
+-	print "Image downloaded"
+-	print "\n"*3
+-	print " Comic title       : %s\n"%img_title
+-	print " Comic number      : %d\n"%CCno
+-	print " Comic Mouse Over  : %s\n"%img_mouseOver
+-	print " Saved HTML File   : %s\n"%(img_naming_scheme+'.html')
++	s1 = "Image downloaded"
++	s2 = "\n"*3
++	s3 = " Comic title       : %s\n"%img_title
++	s4 = " Comic number      : %d\n"%CCno
++	s5 = " Comic Mouse Over  : %s\n"%img_mouseOver
++	s6 = " Saved HTML File   : %s\n"%(img_naming_scheme+'.html')
++
++	display(s1+s2+s3+s4+s5+s6, zenity)
+ 	
++	try :
++		webbrowser.open(img_naming_scheme+'.html')
++	except:
++		pass
+ 
+ 	write_to_file(config_file, str(CCno))
+ 
+-	print "\n"*3,
++	if not gui:
++		display("\n"*3, zenity)
+ 
+ else :
+-	print "No new comic. You are up to date \n"
++	display("No new comic. You are up to date \n", zenity)
+ 
+ 
+ 
+-print "Thanks for using NPS XKCDGet\n"

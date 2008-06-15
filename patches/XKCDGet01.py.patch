@@ -1,0 +1,62 @@
+--- XKCDGet.py	2008-06-06 22:38:15.000000000 +0530
++++ XKCDGet_new.py	2008-06-06 22:30:20.000000000 +0530
+@@ -8,7 +8,7 @@
+ 
+ 	# Program Authors:
+ 	# Name                  Gmail Username
+-	# ====		      ==============
++	# ====		        ==============
+ 	# Naveen Kumar Molleti  <nerd.naveen>
+ 	# Pranesh Srinivasan    <spranesh>
+ 	# Samhita Reddy Kasula  <samhita.kasula>
+@@ -23,14 +23,21 @@
+ import BeautifulSoup as BS
+ 
+ 
+-#we define a few global variables in the lines to follow
+-xkcd 		= "http://www.xkcd.com"
+-layoutChanged 	= "XKCD has probably changed its layout. Contact us :P. \n"
+-config_file 	= os.path.join(os.environ["HOME"], ".xkcdrc")
+-ImageFolder 	= 'images'
++#A few functions are defined first
++def getConfigFileName():
++	'''This function returns the path to the config file, depending on the Operating System.'''
++	try:
++		config_file = os.path.join(os.environ["HOME"], ".xkcdrc")
++	except KeyError:
++		try:
++			config_file = os.path.join(os.environ["HOMEPATH"], ".xkcdrc")
++		except KeyError:
++			print "XKCDGet is not available for your OS yet.\n"
++			quit()
++	
++	return config_file
++
+ 
+-#parameters to be passed in order are image_title, title(again), image_filename, image_mouseOver
+-html_markup 	= "<html><head><title>%s</title></head><body><center><h3>%s</h3><hr /><br /><img src='%s' /> <br />%s<br /></center></body></html>"
+ 
+ def getComicNumber(soup):
+ 	'''The function returns Comic number present in the soup given'''
+@@ -72,7 +79,20 @@
+ 
+ 
+ 
+-#The main program starts here
++# --------------------------------------------------
++# The main program starts here
++# --------------------------------------------------
++
++#we define a few global variables in the lines to follow
++xkcd 		= "http://www.xkcd.com"
++layoutChanged 	= "XKCD has probably changed its layout. Contact us :P. \n"
++config_file 	= getConfigFileName()
++ImageFolder 	= 'images'
++
++#parameters to be passed in order are image_title, title(again), image_filename, image_mouseOver
++html_markup 	= "<html><head><title>%s</title></head><body><center><h3>%s</h3><hr /><br /><img src='%s' /> <br />%s<br /></center></body></html>"
++
++
+ 
+ try:
+ 	f = open(config_file, "r")
