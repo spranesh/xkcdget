@@ -7,11 +7,11 @@
 	 have to be changed for minor modifications of http://www.xkcd.com
 
 	 Program Authors:
-	 Name                  Gmail Username
-	 ====		        ==============
-	 Naveen Kumar Molleti  <nerd.naveen>
-	 Pranesh Srinivasan    <spranesh>
-	 Samhita Reddy Kasula  <samhita.kasula>
+	 Name                  
+	 ====		       
+	 Naveen Kumar Molleti  
+	 Pranesh Srinivasan    
+	 Samhita Reddy Kasula  
 
 
 
