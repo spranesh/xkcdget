@@ -83,77 +83,76 @@ html_markup 	= "<html><head><title>%s</title></head><body><center><h3>%s</h3><hr
 # --------------------------------------------------
 # The main program starts here
 # --------------------------------------------------
-UI = XKCDUI.UI(sys.argv) 
+if __name__ == '__main__':
+	UI = XKCDUI.UI(sys.argv) 
 
+	try:
+		f = open(config_file, "r")
+		#the last accessed strip
+		lAcc = int(f.readline().strip()) 
+		f.close()
+	except IOError, OSError:
+		s = "ERROR: Some error in looking up last accessed file has occured. We will assume whatever we fetch is the latest one. If this is the first time you are running the program there is no cause for worry. This is perfectly alright. \n"
+		UI.display(s)
 
-try:
-	f = open(config_file, "r")
-	#the last accessed strip
-	lAcc = int(f.readline().strip()) 
-	f.close()
-except IOError, OSError:
-	s = "ERROR: Some error in looking up last accessed file has occured. We will assume whatever we fetch is the latest one. If this is the first time you are running the program there is no cause for worry. This is perfectly alright. \n"
+		lAcc = 0
 
-	UI.display(s)
+	try:
+		f = u2.urlopen(xkcd)
+		page = f.read()
+		f.close()
+	except u2.HTTPError, e:
+		UI.display("Error code "+ e+ ". Site could not be openend \n", error=1)
+		quit()
+	except IOError:
+		UI.display("For some vague reason that even we do not understand, we could not read from /tmp \n",  error = 1)
+		quit()
 
-	lAcc = 0
-
-try:
-	f = u2.urlopen(xkcd)
-	page = f.read()
-	f.close()
-except u2.HTTPError, e:
-	UI.display("Error code "+ e+ ". Site could not be openend \n", error=1)
-	quit()
-except IOError:
-	UI.display("For some vague reason that even we do not understand, we could not read from /tmp \n",  error = 1)
-	quit()
-
-Parser = XKCDParse.Parse(BS.BeautifulSoup(page), UI)
+	Parser = XKCDParse.Parse(BS.BeautifulSoup(page), UI)
 
 #we now parse the soup for the PrevTag
-CCno = Parser.getComicNumber()
+	CCno = Parser.getComicNumber()
 
-if CCno > lAcc :
-	UI.display("A new comic is out. Downloading to current directory. \n")
-	img_url, img_title, img_mouseOver = Parser.getImgAttr()		
+	if CCno > lAcc :
+		UI.display("A new comic is out. Downloading to current directory. \n")
+		img_url, img_title, img_mouseOver = Parser.getImgAttr()		
 
-	if not os.path.isdir(ImageFolder):
-		os.mkdir(ImageFolder)
-	
-	#In case there is an error (the dir already exists), we do nothing.
-	
-	try:
-		img_naming_scheme = "%d_%s"%(CCno, img_title.replace(' ', '_'))
-		img_save = os.path.join(ImageFolder,img_naming_scheme+'.png')
-		u1.urlretrieve(img_url, img_save)
-	except:
-		#We did not mention error code, since urllib1 does not have HTTPError Code defined
-		XKCDParse.layoutChanged()
+		if not os.path.isdir(ImageFolder):
+			os.mkdir(ImageFolder)
+		
+		#In case there is an error (the dir already exists), we do nothing.
+		
+		try:
+			img_naming_scheme = "%d_%s"%(CCno, img_title.replace(' ', '_'))
+			img_save = os.path.join(ImageFolder,img_naming_scheme+'.png')
+			u1.urlretrieve(img_url, img_save)
+		except:
+			#We did not mention error code, since urllib1 does not have HTTPError Code defined
+			XKCDParse.layoutChanged()
 
-	#the following 2 lines, save the html file markup
-	page_source = BS.BeautifulSoup(html_markup%(img_title, img_title, img_save, img_mouseOver, thanks)).prettify()
-	write_to_file(img_naming_scheme +'.html', page_source)
+		#the following 2 lines, save the html file markup
+		page_source = BS.BeautifulSoup(html_markup%(img_title, img_title, img_save, img_mouseOver, thanks)).prettify()
+		write_to_file(img_naming_scheme +'.html', page_source)
 
 
-	s1 = "Image downloaded"
-	s2 = "\n"*3
-	s3 = " Comic title       : %s\n"%img_title
-	s4 = " Comic number      : %d\n"%CCno
-	s5 = " Comic Mouse Over  : %s\n"%img_mouseOver
-	s6 = " Saved HTML File   : %s\n"%(img_naming_scheme+'.html')
+		s1 = "Image downloaded"
+		s2 = "\n"*3
+		s3 = " Comic title       : %s\n"%img_title
+		s4 = " Comic number      : %d\n"%CCno
+		s5 = " Comic Mouse Over  : %s\n"%img_mouseOver
+		s6 = " Saved HTML File   : %s\n"%(img_naming_scheme+'.html')
 
-	UI.display(s1+s2+s3+s4+s5+s6)
-	
-	try :
-		webbrowser.open(img_naming_scheme+'.html')
-	except:
-		pass
+		UI.display(s1+s2+s3+s4+s5+s6)
+		
+		try :
+			webbrowser.open(img_naming_scheme+'.html')
+		except:
+			pass
 
-	write_to_file(config_file, str(CCno))
+		write_to_file(config_file, str(CCno))
 
-	if not UI.gui:
-		UI.display("\n"*3)
+		if not UI.gui:
+			UI.display("\n"*3)
 
-else :
-	UI.display("No new comic. You are up to date \n")
+	else :
+		UI.display("No new comic. You are up to date \n")
