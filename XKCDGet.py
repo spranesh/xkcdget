@@ -92,11 +92,9 @@ try:
 	lAcc = int(f.readline().strip()) 
 	f.close()
 except IOError, OSError:
-	s1 = "Some error in looking up last accessed file has occured. We will assume whatever "
-	s2 = "we fetch is the latest one. If this is the first time you are running the program "
-	s3 = "there is no cause for worry. This is perfectly alright. \n"
+	s = "ERROR: Some error in looking up last accessed file has occured. We will assume whatever we fetch is the latest one. If this is the first time you are running the program there is no cause for worry. This is perfectly alright. \n"
 
-	UI.display(s1+s2+s3)
+	UI.display(s)
 
 	lAcc = 0
 

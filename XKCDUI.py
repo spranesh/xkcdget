@@ -1,9 +1,5 @@
 '''This is the UI module, and contains the UI class'''
 
-import sys
-import os
-import easygui
-
 # we set default external Program Variables
 # External Program Name
 # External Program Arguments
@@ -13,10 +9,17 @@ import easygui
 __EPN__ = 'zenity'
 __EPA__ = "--info --title=XKCDGet --text='%s'"
 __EPW__ = "--warning --title=XKCDGet --text='%s"
-__DeOS__ = 'linux'
+__OS__ = 'linux'
 __OSPATH__ = 'PATH'
+hasEasyGUI = True
 
+import sys
+import os
 
+try:
+	import easygui
+except ImportError:
+	hasEasyGUI = False
 
 class UI:
 	'''The class defines the UI.'''
@@ -45,7 +48,7 @@ class UI:
 	hostOS = ''
 	OSPath = ''
 
-	def __init__(self, args, otherProgName=__EPN__, otherProgArgs=__EPA__, passedOS=__DeOS__, passedPath = __OSPATH__):
+	def __init__(self, args, otherProgName=__EPN__, otherProgArgs=__EPA__, passedOS=__OS__, passedPath = __OSPATH__):
 		'''Inits the class by parsing args, and setting external Program.\n
 		A typical example in calling Zenity would be to pass \notherProgName = "zenity"
 		and \notherProgArgs="--info --title=XKCDGet --text='%s'" %s deontes, the place 
@@ -59,7 +62,6 @@ class UI:
 		
 		self.__setGui__(args)
 		self.__setUseExtProgram__(args)
-
 
 
 	def __setGui__(self, li):
@@ -86,14 +88,15 @@ class UI:
 		'''Sets by parsing args, and running through the path, if the external Program specified can be used'''
 		ProgCount = 0
 		if len(args) == 2 and args[1] == '-n':
-			ProgCount = 0
+			if hasEasyGUI == False:
+					print "ERROR: Falling back to command line, no EasyGUI found"
+					self.gui = 0
 		elif sys.platform[:len(self.hostOS)]==self.hostOS:
 			for root in os.environ[self.OSPath].split(':'):
 				for pdir, dirs, files in os.walk(root):
 					ProgCount += len([file for file in files if file == self.extProgName])
 
 		self.useExtProgram = ProgCount
-
 
 
 	def display(self, msgString , error = 0, errorArgs=__EPW__):
